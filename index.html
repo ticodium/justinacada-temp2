@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TimeTick Scheduler</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap");
+      :root {
+        --accent: mediumspringgreen;
+        --bg: #121212;
+        --card: #1f1f1f;
+        --text: #f5f5f5;
+        --dim: #888;
+        --edit: #007bff;
+        --run: #34b334;
+        --delete: #dc3545;
+        --tabtransition: 0.3s;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--bg);
+        font-family: "Inter", sans-serif;
+        color: var(--text);
+      }
+      .container {
+        max-width: 900px;
+        margin: 40px auto;
+        padding: 20px;
+      }
+      h1 {
+        text-align: center;
+        margin-bottom: 20px;
+        color: var(--accent);
+      }
+      .schedule-tile {
+        background: var(--card);
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 20px;
+      }
+      .schedule-tile h3 {
+        font-size: 1.4rem;
+        margin: 0 0 10px;
+        color: var(--accent);
+      }
+      .schedule-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 8px;
+      }
+      .schedule-buttons button {
+        font-weight: 400;
+        padding: 10px 25px;
+        border: none;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: filter 0.2s ease;
+        color: white;
+      }
+      .btn {
+        font-weight: 400;
+        padding: 5px 15px;
+        border: none;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: filter 0.2s ease;
+        color: white;
+      }
+      .btn.edit {
+        background-color: var(--edit);
+      }
+      .btn.run {
+        background-color: var(--run);
+      }
+      .btn.delete {
+        background-color: var(--delete);
+      }
+
+      #saveScheduleBtn {
+        padding: 10px 25px;
+      }
+      .schedule-buttons button:hover {
+        filter: brightness(1.1);
+      }
+      #addScheduleBtn {
+        background: var(--accent);
+        color: black;
+        font-weight: 400;
+        font-size: 0.9rem;
+        border: none;
+        padding: 12px 20px;
+        border-radius: 6px;
+        display: block;
+        width: max-content;
+        cursor: pointer;
+        transition: filter 0.2s ease;
+      }
+      #addScheduleBtn:hover {
+        filter: brightness(1.1);
+      }
+      .schedule-actions {
+        display: flex;
+        position: absolute;
+        left: 50%;
+        translate: -50%;
+        align-items: center;
+        gap: 10px;
+        margin-top: 10px;
+      }
+      .dropdown {
+        position: relative;
+      }
+      .dropdown-toggle {
+        background: var(--edit);
+        color: white;
+        font-weight: 400;
+        font-size: 0.9rem;
+        border: none;
+        padding: 12px 20px;
+        border-radius: 6px;
+        display: block;
+        max-width: 200px;
+        width: max-content;
+        cursor: pointer;
+        transition: filter 0.2s ease;
+      }
+      .dropdown-menu {
+        position: absolute;
+        top: 110%;
+        left: 0;
+        background: var(--edit);
+        border-radius: 6px;
+        display: none;
+        flex-direction: column;
+        width: 100%;
+        z-index: 10;
+      }
+      .dropdown-menu button {
+        background: none;
+        color: white;
+        padding: 10px 12px;
+        border-radius: 6px;
+        text-align: center;
+        border: none;
+        width: 100%;
+        cursor: pointer;
+      }
+      .dropdown-menu button:hover {
+        background-color: #0162c9;
+      }
+      .dropdown.open .dropdown-menu {
+        display: flex;
+      }
+      #modalOverlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.75);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2002;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+      }
+      #modalOverlay.active {
+        opacity: 1;
+        pointer-events: all;
+      }
+      #modal {
+        background: var(--card);
+        border-radius: 10px;
+        width: 90%;
+        max-width: 700px;
+        height: 540px;
+        padding: 20px;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+      }
+      #modalCloseBtn {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: none;
+        border: none;
+        font-size: 28px;
+        color: var(--accent);
+        cursor: pointer;
+        font-weight: 600;
+        line-height: 1;
+      }
+      .tabs {
+        display: flex;
+        background: var(--card);
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 20px;
+      }
+      .tablink {
+        flex: 1;
+        padding: 12px 16px;
+        background: transparent;
+        border: none;
+        color: var(--dim);
+        font-weight: 600;
+        cursor: pointer;
+        position: relative;
+        transition: color 0.3s ease;
+      }
+      .tablink::after {
+        content: "";
+        position: absolute;
+        opacity: 0;
+        bottom: 0;
+        left: 10%;
+        width: 80%;
+        height: 3px;
+        background: var(--accent);
+        border-radius: 999px;
+        transition: opacity var(--tabtransition) ease;
+      }
+      .tablink.active {
+        color: var(--accent);
+      }
+      .tablink.active::after {
+        opacity: 1;
+      }
+      .wizard-step {
+        display: none;
+        flex: 1;
+        overflow-y: auto;
+      }
+      .wizard-step.active {
+        display: block;
+      }
+      .wizard-step.active::-webkit-scrollbar,
+      .dropdown-content::-webkit-scrollbar,
+      .tab-content::-webkit-scrollbar {
+        width: 8px;
+      }
+      .wizard-step.active::-webkit-scrollbar-track,
+      .dropdown-content::-webkit-scrollbar-track,
+      .tab-content::-webkit-scrollbar-track {
+        background: #2a2a2a;
+        border-radius: 10px;
+        border: 1px solid #353535;
+      }
+      .wizard-step.active::-webkit-scrollbar-thumb,
+      .dropdown-content::-webkit-scrollbar-thumb,
+      .tab-content::-webkit-scrollbar-thumb {
+        background: var(--accent);
+        border-radius: 10px;
+        transition: background 0.3s ease;
+      }
+      .dropdown-content::-webkit-scrollbar-thumb {
+        background: #03c47a;
+      }
+      .wizard-step.active::-webkit-scrollbar-thumb:hover,
+      .dropdown-content::-webkit-scrollbar-thumb:hover,
+      .tab-content.active::-webkit-scrollbar-thumb:hover {
+        background: #02d383;
+      }
+      .dropdown-content::-webkit-scrollbar-thumb:hover {
+        background: #03a567;
+      }
+      .wizard-step.active::-webkit-scrollbar-thumb:active,
+      .dropdown-content::-webkit-scrollbar-thumb:active,
+      .tab-content::-webkit-scrollbar-thumb:active {
+        background: #007bff;
+      }
+      .wizard-step.header-div {
+        display: flex;
+        justify-content: space-between;
+      }
+      input[type="text"],
+      input[type="time"] {
+        background: #2a2a2a;
+        border: 1px solid #444;
+        border-radius: 5px;
+        color: white;
+        padding: 8px;
+        width: 100%;
+        font-family: "Inter", sans-serif;
+        margin-bottom: 10px;
+      }
+      input:focus {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        text-align: center;
+      }
+      th,
+      td {
+        padding: 10px;
+        border-bottom: 1px solid #333;
+      }
+      td input[type="text"],
+      td input[type="time"] {
+        text-align: center;
+        padding: 6px;
+        font-size: 0.9rem;
+        background: #2a2a2a;
+        border: 1px solid #444;
+        border-radius: 4px;
+        color: white;
+        width: 100%;
+        margin-bottom: 0;
+      }
+      .invalid-row {
+        background-color: rgba(255, 0, 0, 0.1);
+        transition: background-color 0.3s;
+      }
+      .drag-handle {
+        cursor: grab;
+        user-select: none;
+      }
+      .btn-group {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 10px;
+      }
+      .btn-group button {
+        background: var(--accent);
+        border: none;
+        font-weight: 600;
+        color: black;
+        cursor: pointer;
+        border-radius: 6px;
+        transition: background 0.2s ease;
+        padding: 10px 15px;
+      }
+      #verifyScheduleBtn {
+        margin-right: 10px;
+      }
+      .btn-row {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+      }
+      #toast {
+        position: fixed;
+        left: 50%;
+        translate: -50%;
+        bottom: 20px;
+        max-width: 500px;
+        width: max-content;
+        background: #2a2a2a;
+        color: var(--text);
+        padding: 14px 20px;
+        border-radius: 16px;
+        box-shadow: 0 8px 15px rgba(50, 50, 50, 0.3);
+        text-align: center;
+        opacity: 0;
+        transform: translateY(30px);
+        transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+          transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease,
+          background 0.3s ease;
+        user-select: none;
+        pointer-events: none; 
+        z-index: 10001;
+      }
+      #toast.show {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+      }
+      #toast:hover {
+        box-shadow: 0 12px 22px rgba(60, 60, 60, 0.3);
+        transform: translateY(-3px) scale(1.03);
+        filter: brightness(1.1);
+        cursor: pointer;
+      }
+
+      #runOverlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #121212;
+        color: white;
+        z-index: 10000;
+        display: none;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        font-family: "Inter", sans-serif;
+        text-align: center;
+      }
+      #runLabel {
+        font-size: 3rem;
+        margin-bottom: 20px;
+      }
+      #runCountdown {
+        font-size: 6rem;
+        margin-bottom: 20px;
+      }
+      #runProgressContainer {
+        width: 80%;
+        height: 20px;
+        background: #2a2a2a;
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      #runProgressBar {
+        height: 100%;
+        background: var(--accent);
+        width: 0%;
+        transition: width 0.5s linear;
+      }
+      .run-controls {
+        display: flex;
+        gap: 10px;
+        margin-top: 30px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .run-controls button {
+        padding: 10px 20px;
+        font-size: 1rem;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        line-height: 1;
+      }
+      .btn-prev,
+      .btn-next {
+        background: var(--edit);
+        color: white;
+      }
+      #snapToNow {
+        background: var(--accent);
+        color: black;
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+        padding-right: 6px;
+      }
+      #blockDropdown {
+        background-color: var(--accent);
+        color: black;
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+        margin-left: -10px;
+        padding-left: 6px;
+        padding-right: 15px;
+      }
+      .btn-exit {
+        background: var(--delete);
+        color: white;
+      }
+
+      .sidebar {
+        position: fixed;
+        top: 0;
+        right: -360px;
+        width: 360px;
+        height: 100%;
+        background: #111;
+        border-left: 1px solid #2a2a2a;
+        transition: right 0.25s ease;
+        display: flex;
+        flex-direction: column;
+        z-index: 2001;
+        box-shadow: -4px 0 20px rgba(0, 0, 0, 0.4);
+        font-family: "Inter", sans-serif;
+      }
+
+      .sidebar.open {
+        right: 0;
+      }
+
+      .sidebar-header {
+        padding: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #2a2a2a;
+        background: #151515;
+      }
+      .sidebar-header h2 {
+        margin: 0;
+        font-size: 1.1rem;
+        color: white;
+      }
+      .close-btn {
+        background: transparent;
+        border: none;
+        font-size: 1.6rem;
+        color: #888;
+        cursor: pointer;
+        transition: color 0.2s;
+      }
+      .close-btn:hover {
+        color: mediumspringgreen;
+      }
+
+      .sidebar-tabs {
+        display: flex;
+        border-bottom: 1px solid #2a2a2a;
+        background: #1a1a1a;
+      }
+      .tab {
+        flex: 1;
+        padding: 0.6rem 0.5rem;
+        background: none;
+        border: none;
+        color: #aaa;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+        border-bottom: 2px solid transparent;
+      }
+      .tab:hover {
+        color: white;
+      }
+      .tab.active {
+        color: mediumspringgreen;
+        border-bottom: 2px solid mediumspringgreen;
+      }
+
+      .tab-content {
+        padding: 1rem;
+        overflow-y: auto;
+        flex-grow: 1;
+        color: #ccc;
+      }
+      .tab-content.hidden {
+        display: none;
+      }
+
+      .options-toggle {
+        position: fixed;
+        bottom: 1.5rem;
+        right: 1.5rem;
+        background: #1e1e1e;
+        border: 1px solid #333;
+        color: var(--text);
+        padding: 0.5rem 0.9rem;
+        border-radius: 10px;
+        font-size: 0.95rem;
+        cursor: pointer;
+        font-family: "Inter", sans-serif;
+        transition: background 0.2s, transform 0.2s;
+        z-index: 2000;
+      }
+      .options-toggle:hover {
+        background: #2a2a2a;
+        transform: translateY(-1px);
+      }
+      .toast-history-list {
+        padding: 1rem;
+        overflow-y: auto;
+        font-family: Inter, sans-serif;
+      }
+      .toast-history-entry {
+        background: rgba(255, 255, 255, 0.03);
+        border-left: 4px solid mediumspringgreen;
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.5rem;
+        border-radius: 0.5rem;
+        transition: background 0.2s;
+      }
+      .toast-history-entry:hover {
+        background: rgba(255, 255, 255, 0.06);
+      }
+      .toast-entry-header {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.8rem;
+        color: #ccc;
+        margin-bottom: 0.25rem;
+      }
+      .toast-entry-msg {
+        font-size: 0.95rem;
+        color: #fff;
+      }
+      .toast-type {
+        font-weight: bold;
+        text-transform: uppercase;
+      }
+      .toast-time {
+        font-family: monospace;
+      }
+      .empty-msg {
+        color: #888;
+        text-align: center;
+        padding: 1rem;
+      }
+
+      .popup-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(3px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 3000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s ease;
+      }
+      .popup-overlay:not(.hidden) {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .popup-box {
+        background: #1e1e1e;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15),
+          0 4px 15px rgba(0, 0, 0, 0.1);
+        width: 520px;
+
+        padding: 80px 28px;
+        text-align: center;
+        transform: scale(0.9);
+        opacity: 0;
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+          opacity 0.25s ease;
+      }
+      .popup-overlay:not(.hidden) .popup-box {
+        transform: scale(1);
+        opacity: 1;
+      }
+
+      .popup-message {
+        font-size: 1.5rem;
+        color: white;
+        margin-bottom: 24px;
+        white-space: pre-line;
+      }
+
+      .popup-actions {
+        display: flex;
+        justify-content: center;
+        gap: 16px;
+      }
+
+      .popup-actions button {
+        min-width: 110px;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+        user-select: none;
+        box-shadow: 0 4px 12px rgb(0 0 0 / 0.1);
+        outline-offset: 2px;
+      }
+
+      #popupConfirmBtn {
+        background-color: #02aa69;
+        color: #fff;
+      }
+      #popupConfirmBtn:hover,
+      #popupConfirmBtn:focus {
+        filter: brightness(1.01);
+        box-shadow: 0 0 8px #029b60aa;
+        outline: none;
+      }
+
+      #popupCancelBtn {
+
+        background-color: #dc3545;
+        color: #fff;
+      }
+      #popupCancelBtn:hover,
+      #popupCancelBtn:focus {
+        filter: brightness(1.01);
+        box-shadow: 0 0 8px #c02e3daa;
+        outline: none;
+      }
+      .popup-checkbox {
+        margin-top: 12px;
+        font-size: 0.9rem;
+        color: #ccc;
+        width: max-content;
+        position: absolute;
+        left: 50%;
+        translate: -50% 50%;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        user-select: none;
+        cursor: pointer;
+      }
+      .popup-checkbox input[type="checkbox"] {
+        accent-color: mediumspringgreen;
+        transform: scale(1.1);
+      }
+      .clear-all-btn {
+        display: block;
+        background-color: var(--delete);
+        color: white;
+        font-weight: 400;
+        padding: 7px 15px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        font-size: 0.95rem;
+        transition: filter 0.2s ease, box-shadow 0.2s ease;
+      }
+      .clear-all-btn.hidden {
+        display: none;
+      }
+      .clear-all-btn:hover {
+        filter: brightness(1.1);
+        box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.4);
+      }
+      .btn-group-dropdown {
+        position: relative;
+        display: inline-block;
+      }
+      .dropdown-content {
+        display: none;
+        position: absolute;
+        background-color: var(--accent);
+        min-width: 100%;
+        max-width: 200%;
+        width: max-content;
+        max-height: 700%;
+        box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+        z-index: 2;
+        top: 100%;
+        margin-top: 5px;
+        border-radius: 6px;
+        overflow-y: auto;
+      }
+      .dropdown-option {
+        padding: 10px 15px;
+        color: black;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .dropdown-option.disabled {
+        color: #f0f0f0;
+        cursor: default;
+        background-color: #999;
+      }
+      .dropdown-option.disabled:hover {
+        background-color: #999;
+      }
+      .dropdown-option:hover {
+        background-color: #00df8a;
+      }
+      .dropdown-content.styled.show {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>TimeTick Scheduler</h1>
+      <div id="savedSchedulesContainer">
+        <div id="savedSchedulesList"></div>
+        <noscript>
+          <p style="color: #ccc; text-align: center">
+            JavaScript isn't enabled for this page.<br /><span
+              style="color: #aaa; font-size: 0.9rem"
+              >(how do you think you're supposed to use this?)</span
+            >
+          </p>
+          <img
+            src="./why.gif"
+            alt=""
+            width="200px"
+            style="
+              position: absolute;
+              left: 50%;
+              translate: -50% 50%;
+              margin-top: 35px;
+            "
+          />
+        </noscript>
+        <div class="schedule-actions">
+          <button id="addScheduleBtn">+ Create New Schedule</button>
+          <div class="dropdown">
+            <button class="dropdown-toggle">Schedule Options ▾</button>
+            <div class="dropdown-menu">
+              <button id="exportAllSchedulesBtn">Export All Schedules</button>
+              <button id="importSingleScheduleBtn">Import JSON</button>
+              <input
+                type="file"
+                id="importScheduleFileInput"
+                accept=".json"
+                style="display: none"
+              />
+            </div>
+          </div>
+        </div>
+        <noscript>
+          <p
+            style="
+              position: relative;
+              color: #aaa;
+              font-size: 0.9rem;
+              text-align: center;
+              margin-top: 84px;
+            "
+          >
+            ⬆️ doesn't work ⬆️
+          </p>
+        </noscript>
+      </div>
+    </div>
+
+    <div id="modalOverlay">
+      <div id="modal">
+        <div class="tabs">
+          <button class="tablink active">1. Create</button>
+          <button class="tablink">2. Edit</button>
+          <button class="tablink">3. Save</button>
+        </div>
+        <button id="modalCloseBtn">&times;</button>
+        <div class="wizard-step active" id="step1">
+          <h2>Create Timer Blocks</h2>
+          <label for="blockLabel">Label</label>
+          <input id="blockLabel" type="text" placeholder="Enter label" />
+          <label for="blockStart">Start Time (optional)</label>
+          <input id="blockStart" type="time" />
+          <label for="blockEnd">End Time (required)</label>
+          <input id="blockEnd" type="time" />
+          <div class="btn-group">
+            <button id="addBlockBtn">Add Block</button>
+          </div>
+        </div>
+        <div class="wizard-step" id="step2">
+          <h2>Review & Edit</h2>
+          <table>
+            <thead>
+              <tr>
+                <th></th>
+                <th>Label</th>
+                <th>Start</th>
+                <th>End</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="scheduleTableBody"></tbody>
+          </table>
+          <div class="btn-group">
+            <button id="verifyScheduleBtn">Verify Schedule</button>
+          </div>
+        </div>
+        <div class="wizard-step" id="step3">
+          <h2>Save or Export</h2>
+          <label for="saveScheduleName">Schedule Name</label>
+          <input
+            type="text"
+            id="saveScheduleName"
+            placeholder="Enter schedule name"
+          />
+          <div class="btn-row" style="justify-content: center">
+            <button id="saveScheduleBtn" class="btn edit">Save Schedule</button>
+            <input
+              type="file"
+              id="importJsonInput"
+              accept=".json"
+              style="display: none"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="runOverlay">
+      <h1 id="runLabel"></h1>
+      <div id="runCountdown"></div>
+      <div id="runProgressContainer">
+        <div id="runProgressBar"></div>
+      </div>
+      <div class="run-controls">
+        <button id="prevRunBlock" class="btn-prev">Prev</button>
+        <div class="run-dropdown btn-group-dropdown">
+          <button id="snapToNow" class="btn-snap">Snap to Now</button>
+          <button id="blockDropdown" class="btn-go">▾</button>
+          <div class="dropdown-content styled" id="styledDropdown"></div>
+        </div>
+        <button id="nextRunBlock" class="btn-next">Next</button>
+        <button id="exitRunView" class="btn-exit">Exit</button>
+      </div>
+    </div>
+
+    <div id="toast" class="toast">
+      <span id="toastMessage"></span>
+    </div>
+    <button id="openOptionsBtn" class="options-toggle">⚙️ Options</button>
+
+    <div id="optionsSidebar" class="sidebar">
+      <div class="sidebar-header">
+        <h2>Options</h2>
+        <button id="closeOptionsBtn" class="close-btn" title="Close">
+          &times;
+        </button>
+      </div>
+      <div class="sidebar-tabs">
+        <button class="tab active" data-tab="generalTab">General</button>
+        <button class="tab" data-tab="tab-toast-history">Toast History</button>
+      </div>
+      <div class="tab-content" id="generalTab">
+        <p>More general options coming soon.</p>
+        <label class="chromebook-mode">
+          <input type="checkbox" id="chromebookModeCheckbox" />
+          Chromebook Mode
+        </label>
+      </div>
+      <div class="tab-content hidden" id="tab-toast-history">
+        <h3>Toast History</h3>
+        <div id="toast-history-controls" style="margin-bottom: 0.5em">
+          <button id="clear-toast-history-btn" class="clear-all-btn">
+            Clear All
+          </button>
+        </div>
+        <div id="toast-history-list" class="toast-history-list"></div>
+      </div>
+    </div>
+    <div id="popupOverlay" class="popup-overlay hidden">
+      <div class="popup-box">
+        <div class="popup-message" id="popupMessage"></div>
+        <div class="popup-actions">
+          <button id="popupConfirmBtn"></button>
+          <button id="popupCancelBtn" class="cancel"></button>
+        </div>
+        <label class="popup-checkbox">
+          <input type="checkbox" id="popupSkipCheckbox" />
+          Don't show again for this message
+        </label>
+      </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="timetick.js"></script>
+  </body>
+</html>
