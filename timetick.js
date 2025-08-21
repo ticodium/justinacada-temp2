@@ -665,7 +665,7 @@ function showBreakUntil(index) {
       return;
     }
 
-    const hours = Math.floor(remainingSeconds / 3600);
+    const hours = Math.floor(remaining / 3600);
     const mins = Math.floor((remaining % 3600) / 60);
     const secs = Math.floor(remaining % 60);
     runCountdown.textContent = `Resuming in ${hours ? `${hours}:` : ''}${mins}:${secs
@@ -981,4 +981,5 @@ renderSavedSchedules();
 synchronizeServerTime().then(() => {
   console.log("Server time synchronized, offset (ms):", serverTimeOffset);
 });
+
 
