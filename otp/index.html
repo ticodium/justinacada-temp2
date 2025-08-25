@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FSW Code Generator</title>
+  <script type="text/javascript" src="./sha.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: "Inter", sans-serif;
+      background-color: #121212;
+      color: #e0e0e0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      width: 100%;
+      padding: 40px;
+      background-color: #1e1e1e;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    h1 {
+      color: mediumspringgreen;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 2.5em;
+    }
+
+    label {
+      font-size: 1.1em;
+      color: #bbb;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .input {
+      margin-bottom: 20px;
+    }
+
+    .input.secret,
+    label[for="secret"] {
+      display: none;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      padding: 15px;
+      border: 1px solid #444;
+      border-radius: 10px;
+      font-size: 1.2em;
+      background-color: #2a2a2a;
+      color: #fff;
+      resize: none;
+      transition: border-color 0.3s ease;
+    }
+
+    input,
+    textarea:focus {
+      outline: none;
+      border-color: mediumspringgreen;
+    }
+
+    .otp-display {
+      height: 70px;
+      font-size: 2.5em;
+      text-align: center;
+      font-weight: bold;
+      letter-spacing: 5px;
+      color: #00ff00;
+      background-color: #1e1e1e;
+      border: none;
+    }
+
+    .status {
+      margin-top: 20px;
+      color: #aaa;
+    }
+
+    .status div {
+      margin-bottom: 10px;
+    }
+
+    .status strong {
+      color: mediumspringgreen;
+    }
+
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 34px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: 0.4s;
+      border-radius: 50px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 26px;
+      width: 26px;
+      border-radius: 50px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: 0.4s;
+    }
+
+    input:checked+.slider {
+      background-color: mediumspringgreen;
+    }
+
+    input:checked+.slider:before {
+      transform: translateX(26px);
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .label {
+      padding: 6px 12px;
+      margin: 6px;
+      font-size: 1.1em;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    .label-default {
+      background-color: #444;
+    }
+
+    .label-primary {
+      background-color: mediumspringgreen;
+      color: white;
+    }
+
+    .label.important {
+      background-color: #ff5722;
+      color: white;
+    }
+
+    .progress-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 0;
+      margin-bottom: 20px;
+      gap: 15px;
+    }
+
+    .progress-wrapper {
+      position: relative;
+      width: 60px;
+      height: 60px;
+    }
+
+    .progress-circle {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: conic-gradient(mediumspringgreen var(--progress, 0%), #2a2a2a 0deg);
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .progress-circle::before {
+      content: '';
+      position: absolute;
+      top: 5px;
+      left: 5px;
+      right: 5px;
+      bottom: 5px;
+      background: #1e1e1e;
+      border-radius: 50%;
+    }
+
+    .progress-time {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.2em;
+      font-weight: 600;
+      color: mediumspringgreen;
+    }
+
+    .progress-label {
+      font-size: 1.1em;
+      color: #bbb;
+    }
+
+    .progress-circle.low-time {
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        filter: brightness(1);
+      }
+
+      50% {
+        filter: brightness(1.3);
+      }
+    }
+
+    #account-select {
+      width: 100%;
+      padding: 15px;
+      border: 1px solid #444;
+      border-radius: 10px;
+      font-size: 1.1em;
+      background-color: #2a2a2a;
+      color: #fff;
+      margin-bottom: 20px;
+      transition: border-color 0.3s ease;
+    }
+
+    #account-select:focus {
+      outline: none;
+      border-color: mediumspringgreen;
+    }
+
+    #openModal {
+      width: 100%;
+      padding: 15px;
+      background-color: mediumspringgreen;
+      color: #121212;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.1em;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      margin-top: 10px;
+    }
+
+    #openModal:hover {
+      background-color: #00e6b8;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(5px);
+    }
+
+    .modal-content {
+      background-color: #1e1e1e;
+      margin: 10% auto;
+      padding: 30px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      position: relative;
+      border: 1px solid #444;
+    }
+
+    .close {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      color: #aaa;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: color 0.3s ease;
+    }
+
+    .close:hover {
+      color: #fff;
+    }
+
+    .modal h2 {
+      color: mediumspringgreen;
+      text-align: center;
+      margin-bottom: 25px;
+      font-size: 1.8em;
+    }
+
+    .modal input {
+      width: 100%;
+      padding: 15px;
+      border: 1px solid #444;
+      border-radius: 10px;
+      font-size: 1.1em;
+      background-color: #2a2a2a;
+      color: #fff;
+      margin-bottom: 20px;
+      transition: border-color 0.3s ease;
+    }
+
+    .modal input:focus {
+      outline: none;
+      border-color: mediumspringgreen;
+    }
+
+    .modal button[type="submit"] {
+      width: 100%;
+      padding: 15px;
+      background-color: mediumspringgreen;
+      color: #121212;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.1em;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .modal button[type="submit"]:hover {
+      background-color: #00e6b8;
+    }
+
+    #snackbar {
+      visibility: hidden;
+      min-width: 250px;
+      margin-left: -125px;
+      background-color: #333;
+      color: #fff;
+      text-align: center;
+      border-radius: 2px;
+      padding: 16px;
+      position: fixed;
+      z-index: 1;
+      left: 50%;
+      bottom: 30px;
+    }
+
+    #snackbar.show {
+      visibility: visible;
+      -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s;
+      animation: fadein 0.5s, fadeout 0.5s 2.5s;
+    }
+
+    @-webkit-keyframes fadein {
+      from {
+        bottom: 0;
+        opacity: 0;
+      }
+
+      to {
+        bottom: 30px;
+        opacity: 1;
+      }
+    }
+
+    @keyframes fadein {
+      from {
+        bottom: 0;
+        opacity: 0;
+      }
+
+      to {
+        bottom: 30px;
+        opacity: 1;
+      }
+    }
+
+    @-webkit-keyframes fadeout {
+      from {
+        bottom: 30px;
+        opacity: 1;
+      }
+
+      to {
+        bottom: 0;
+        opacity: 0;
+      }
+    }
+
+    @keyframes fadeout {
+      from {
+        bottom: 30px;
+        opacity: 1;
+      }
+
+      to {
+        bottom: 0;
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>FSW Code Generator</h1>
+
+    <label for="account-select">Select Account:</label>
+    <select id="account-select" class="input">
+      <option value="">-- Select an Account --</option>
+    </select>
+
+    <label for="secret">Secret (base32):</label>
+    <div class="input secret">
+      <input type="password" id="secret" readonly></textarea>
+    </div>
+
+    <label>One-time Password (OTP): (click to copy)</label>
+    <div class="input">
+      <textarea readonly id="otp" class="otp-display" rows="1"></textarea>
+
+      <div class="progress-container">
+        <span class="progress-label">Expires in:</span>
+        <div class="progress-wrapper">
+          <div class="progress-circle" id="progressCircle" style="--progress: 100%">
+            <span class="progress-time" id="progressTime">30s</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toggle-container">
+      <label for="nerd-mode-toggle">Show Nerd Mode</label>
+      <label class="switch">
+        <input type="checkbox" id="nerd-mode-toggle" />
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div id="status-container" class="status hidden">
+      <div><strong>Secret in Hex:</strong> <span id="secretHex"></span></div>
+      <div><strong>Secret Length:</strong> <span id="secretHexLength"></span></div>
+      <div><strong>Epoch Time:</strong> <span id="epoch"></span></div>
+      <div><strong>HMAC (SHA-1):</strong> <span id="hmac"></span></div>
+    </div>
+
+    <button id="openModal" class="input">Add an Account</button>
+
+    <div id="accountModal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Add an Account</h2>
+        <form id="account-form">
+          <label for="username">Username:</label>
+          <input type="text" id="username" placeholder="Enter username" required />
+
+          <label for="account-secret">Secret Key:</label>
+          <input type="text" id="account-secret" placeholder="Enter base32 secret" required />
+
+          <button type="submit">Add Account</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div id="snackbar"></div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var secretInput = document.getElementById("secret");
+      var otpText = document.getElementById("otp");
+      var secretHex = document.getElementById("secretHex");
+      var secretHexLength = document.getElementById("secretHexLength");
+      var epochText = document.getElementById("epoch");
+      var hmacText = document.getElementById("hmac");
+      var statusContainer = document.getElementById("status-container");
+      var nerdModeToggle = document.getElementById("nerd-mode-toggle");
+      var progressCircle = document.getElementById('progressCircle');
+      var progressTime = document.getElementById('progressTime');
+      var accountSelect = document.getElementById("account-select");
+      var accountForm = document.getElementById("account-form");
+      var accounts = JSON.parse(localStorage.getItem('accounts')) || [];
+      var snackbar = document.getElementById("snackbar");
+
+      var modal = document.getElementById("accountModal");
+      var openModalButton = document.getElementById("openModal");
+      var closeModalButton = document.getElementsByClassName("close")[0];
+
+      var currentSecret = "";
+
+      function leftpad(value, length, pad) {
+        return new Array(length - value.length + 1).join(pad) + value;
+      }
+
+      function dec2hex(dec) {
+        return dec.toString(16).toUpperCase();
+      }
+
+      function hex2dec(hex) {
+        return parseInt(hex, 16);
+      }
+
+      function base32tohex(base32) {
+        var base32chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+        var bits = "";
+        var hex = "";
+
+        for (var i = 0; i < base32.length; i++) {
+          var val = base32chars.indexOf(base32.charAt(i).toUpperCase());
+          bits += leftpad(val.toString(2), 5, "0");
+        }
+
+        for (var i = 0; i + 4 <= bits.length; i += 4) {
+          var chunk = bits.substr(i, 4);
+          hex = hex + parseInt(chunk, 2).toString(16);
+        }
+        return hex;
+      }
+
+      function updateOtp() {
+        if (!currentSecret) {
+          otpText.textContent = "Select an Account";
+          return;
+        }
+
+        var key = base32tohex(currentSecret);
+        var epoch = Math.round(new Date().getTime() / 1000.0);
+        var time = leftpad(dec2hex(Math.floor(epoch / 30)), 16, "0");
+
+        try {
+          var shaObj = new jsSHA("SHA-1", "HEX");
+          shaObj.setHMACKey(key, "HEX");
+          shaObj.update(time);
+          var hmac = shaObj.getHMAC("HEX");
+
+          secretHex.textContent = key;
+          secretHexLength.textContent = key.length * 4 + " bits";
+          epochText.textContent = time;
+          hmacText.innerHTML = "";
+
+          if (hmac == "KEY MUST BE IN BYTE INCREMENTS") {
+            var span = document.createElement("span");
+            span.classList.add("label", "important");
+            span.textContent = hmac;
+            hmacText.appendChild(span);
+          } else {
+            var offset = hex2dec(hmac.substring(hmac.length - 1));
+            var part1 = hmac.substr(0, offset * 2);
+            var part2 = hmac.substr(offset * 2, 8);
+            var part3 = hmac.substr(offset * 2 + 8, hmac.length - offset);
+            if (part1.length > 0) {
+              var span1 = document.createElement("span");
+              span1.classList.add("label", "label-default");
+              span1.textContent = part1;
+              hmacText.appendChild(span1);
+            }
+            var span2 = document.createElement("span");
+            span2.classList.add("label", "label-primary");
+            span2.textContent = part2;
+            hmacText.appendChild(span2);
+            if (part3.length > 0) {
+              var span3 = document.createElement("span");
+              span3.classList.add("label", "label-default");
+              span3.textContent = part3;
+              hmacText.appendChild(span3);
+            }
+          }
+
+          var otp = (hex2dec(hmac.substr(offset * 2, 8)) & hex2dec("7fffffff")) + "";
+          otp = otp.substr(otp.length - 6, 6);
+
+          otpText.textContent = otp;
+        } catch (e) {
+          secretHex.textContent = "N/A";
+          secretHexLength.textContent = "0 bits";
+          epochText.textContent = time;
+          hmacText.innerHTML = "";
+          otpText.textContent = "Error";
+          var span = document.createElement("span");
+          span.classList.add("label", "important");
+          span.textContent = e.message;
+          hmacText.appendChild(span);
+        }
+      }
+
+      function updateProgressBar(secondsRemaining) {
+        const progressPercentage = (secondsRemaining / 30) * 100;
+        progressCircle.style.setProperty('--progress', `${progressPercentage}%`);
+        progressTime.textContent = `${secondsRemaining}s`;
+
+        if (secondsRemaining <= 5) {
+          progressCircle.classList.add('low-time');
+        } else {
+          progressCircle.classList.remove('low-time');
+        }
+      }
+
+      function timer() {
+        var epoch = Math.round(new Date().getTime() / 1000.0);
+        var countDown = 30 - (epoch % 30);
+
+        if (epoch % 30 == 0) updateOtp();
+        updateProgressBar(countDown);
+      }
+
+      setInterval(timer, 1000);
+
+      accountSelect.addEventListener("change", function () {
+        var selectedAccount = accounts.find(account => account.username === accountSelect.value);
+        if (selectedAccount) {
+          secretInput.value = selectedAccount.secret;
+          currentSecret = selectedAccount.secret;
+          updateOtp();
+        } else {
+          secretInput.value = "";
+          currentSecret = "";
+          secretHex.textContent = "N/A";
+          secretHexLength.textContent = "0 bits";
+          epochText.textContent = leftpad(dec2hex(Math.floor(Math.round(new Date().getTime() / 1000.0) / 30)), 16, "0");
+          hmacText.innerHTML = "N/A";
+          otpText.textContent = "Select an Account";
+        }
+      });
+
+      // Handle account creation
+      accountForm.addEventListener("submit", function (event) {
+        event.preventDefault();
+
+        var username = document.getElementById("username").value;
+        var accountSecret = document.getElementById("account-secret").value;
+
+        var account = {
+          username: username,
+          secret: accountSecret
+        };
+
+        accounts.push(account);
+        localStorage.setItem('accounts', JSON.stringify(accounts));
+
+        var option = document.createElement("option");
+        option.value = username;
+        option.textContent = username;
+        accountSelect.appendChild(option);
+
+        accountSelect.value = username;
+        secretInput.value = accountSecret;
+        currentSecret = accountSecret;
+        updateOtp();
+
+        accountForm.reset();
+        closeModal();
+      });
+
+      function deleteAccount(username) {
+        accounts = accounts.filter(account => account.username !== username);
+        localStorage.setItem('accounts', JSON.stringify(accounts));
+        updateAccountDropdown();
+      }
+
+      function updateAccountDropdown() {
+        accountSelect.innerHTML = '<option value="">-- Select an Account --</option>';
+        accounts.forEach(account => {
+          var option = document.createElement("option");
+          option.value = account.username;
+          option.textContent = account.username;
+
+          var deleteButton = document.createElement("button");
+          deleteButton.textContent = "Delete";
+          deleteButton.onclick = function () {
+            deleteAccount(account.username);
+          };
+
+          var listItem = document.createElement("div");
+          listItem.appendChild(option);
+          listItem.appendChild(deleteButton);
+          accountSelect.appendChild(listItem);
+        });
+      }
+
+      openModalButton.onclick = function () {
+        modal.style.display = "block";
+      }
+
+      closeModalButton.onclick = function () {
+        modal.style.display = "none";
+      }
+
+      otpText.onclick = function () {
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(otpText.value);
+          snackbar.className = "show";
+          snackbar.innerText = "Copied OTP!";
+          setTimeout(function () {
+            snackbar.className = snackbar.className.replace("show", "");
+          }, 3000);
+        }
+      }
+
+      window.onclick = function (event) {
+        if (event.target == modal) {
+          modal.style.display = "none";
+        }
+      }
+
+      function closeModal() {
+        modal.style.display = "none";
+      }
+
+      nerdModeToggle.addEventListener("change", function () {
+        if (nerdModeToggle.checked) {
+          statusContainer.classList.remove("hidden");
+        } else {
+          statusContainer.classList.add("hidden");
+        }
+      });
+      
+      updateAccountDropdown();
+      if (accounts.length > 0) {
+        accountSelect.value = accounts[0].username;
+        currentSecret = accounts[0].secret;
+        updateOtp();
+      }
+    });
+  </script>
+</body>
+
+</html>
